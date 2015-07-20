@@ -42,28 +42,53 @@ int main(int argc, char *argv[])
             std::vector<Point> scaletwo(contours[j].size());
             std::vector<Point> scalethree(contours[j].size());
             std::vector<Point> intmc(mc.size());
-            std::vector<vector<Point>> newcontours(contours.size());
+            std::vector<vector<Point>> newcontours1(contours.size());
+            std::vector<vector<Point>> newcontours2(contours.size());
+            std::vector<vector<Point>> newcontours3(contours.size());
             intmc[j]= Point((int)mc[j].x,(int)mc[j].y);
        	    for (size_t k = 0; k < contours[j].size(); k++)
 			{   
+                int onehalfx, onehalfy, twox, twoy, threex, threey;
 				int tempx = contours[j][k].x - intmc[j].x;
                 int tempy = contours[j][k].y - intmc[j].y;
-                tempx = 1.5*tempx;
-                tempy = 1.5*tempy;
-                tempx+= intmc[j].x;
-                tempy+= intmc[j].y;
-                scaleone.push_back(Point(tempx,tempy));             
+                onehalfx = 1.5*tempx;
+                onehalfy = 1.5*tempy;
+                onehalfx+= intmc[j].x;
+                onehalfy+= intmc[j].y;
+                twox = 2*tempx;
+                twoy = 2*tempy;
+                twox+= intmc[j].x;
+                twoy+= intmc[j].y;
+                threex = 3*tempx;
+                threey = 3*tempy;
+                threex+= intmc[j].x;
+                threey+= intmc[j].y;
+                scaleone.push_back(Point(onehalfx,onehalfy));
+                scaletwo.push_back(Point(twox,twoy));
+                scalethree.push_back(Point(threex,threey));             
 			}
-            for (size_t k = 0; k < newcontours.size(); k++)
+            for (size_t k = 0; k < newcontours1.size(); k++)
             {
                 for (size_t d = 0; d < scaleone.size(); d++)
                 {
                     Point p = scaleone[d];
-                    newcontours[k].push_back(p);
+                    newcontours1[k].push_back(p);
+                }
+                for (size_t d = 0; d < scaletwo.size(); d++)
+                {
+                    Point p = scaletwo[d];
+                    newcontours2[k].push_back(p);
+                }
+                for (size_t d = 0; d < scalethree.size(); d++)
+                {
+                    Point p = scalethree[d];
+                    newcontours3[k].push_back(p);
                 }
             }
-            
-            drawContours(img,newcontours,j,color,2,8, hierarchy, 0, Point()); 
+            drawContours(img,contours,j,Scalar(0,255,255),1,8, vector<Vec4i>(), 0, Point());
+            drawContours(img,newcontours1,j,color,1,8, hierarchy, 0, Point()); 
+            drawContours(img,newcontours2,j,Scalar(0,0,255),1,8, vector<Vec4i>(), 0, Point());
+            drawContours(img,newcontours3,j,Scalar(255,0,255),1,8, vector<Vec4i>(), 0, Point());
    	    }
    	}
 
