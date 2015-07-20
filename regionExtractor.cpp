@@ -5,6 +5,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 #include <limits>
+#include <iterator>
 
 using namespace cv;
 
@@ -23,6 +24,7 @@ int main(int argc, char *argv[])
     std::vector<vector<Point>> contours;
     std::vector<Vec4i> hierarchy;
     ms(box, regions, Mat());
+    Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
     for (size_t i = 0; i < regions.size(); i++)
    	{
         drawContours(mask,regions,i,Scalar::all(255),1,8, vector<Vec4i>(), 0, Point());
@@ -31,42 +33,40 @@ int main(int argc, char *argv[])
         for (size_t j = 0; j < contours.size(); j++)
    	    {
             convexHull(Mat(contours[j]), hull[j], false);
-   	    }
-        std::vector<Moments> mu(hull.size());
-        for (size_t j = 0; j < hull.size(); j++)
-        {
-             mu[j]= moments(hull[j], false);
-        }
-        std::vector<Point2f> mc(hull.size());
-        for(size_t j = 0; j < hull.size(); j++)
-        {
+            std::vector<Moments> mu(hull.size());
+            mu[j]= moments(hull[j], false);
+            std::vector<Point2f> mc(hull.size());
             mc[j] = Point2f( mu[j].m10/mu[j].m00 , mu[j].m01/mu[j].m00 );
-        }
-        std::vector<vector<Point2f>> points(hull.size());
-        for(size_t j = 0; j < hull.size(); j++)
-        {
-            std::vector<Point2f> temp(hull[j].size());
-            std::vector<Point>::iterator con = hull[j].begin();
-            //size_t index=0;
-            while (con !=  hull[j].end())
-            {
-                con = con - mc[j];
-                //temp[index].y = con - mc[j].y;
-                con = 1.5*con;
-                con = con + mc[j];
-                //temp[index].y = temp[index].y + mc[j].y;
-                /*temp.push_back(temp1); */
-            }
-            //points.push_back(temp);
-        }
-        for (size_t j = 0; j < hull.size(); j++)
-        {
-            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-            //drawContours(img,contours,k,color,2,8, hierarchy, 0, Point());
-            drawContours(img,points,j, color, 2,8,vector<Vec4i>(), 0);
             circle( img, mc[j], 4, Scalar::all(255), -1, 8, 0 );
-        }
+            std::vector<Point> scaleone(contours[j].size());
+            std::vector<Point> scaletwo(contours[j].size());
+            std::vector<Point> scalethree(contours[j].size());
+            std::vector<Point> intmc(mc.size());
+            std::vector<vector<Point>> newcontours(contours.size());
+            intmc[j]= Point((int)mc[j].x,(int)mc[j].y);
+       	    for (size_t k = 0; k < contours[j].size(); k++)
+			{   
+				int tempx = contours[j][k].x - intmc[j].x;
+                int tempy = contours[j][k].y - intmc[j].y;
+                tempx = 1.5*tempx;
+                tempy = 1.5*tempy;
+                tempx+= intmc[j].x;
+                tempy+= intmc[j].y;
+                scaleone.push_back(Point(tempx,tempy));             
+			}
+            for (size_t k = 0; k < newcontours.size(); k++)
+            {
+                for (size_t d = 0; d < scaleone.size(); d++)
+                {
+                    Point p = scaleone[d];
+                    newcontours[k].push_back(p);
+                }
+            }
+            
+            drawContours(img,newcontours,j,color,2,8, hierarchy, 0, Point()); 
+   	    }
    	}
+
     imshow("/home/jkaikaus/Lab/regionExtractor/output/Samples/4.jpg", img);
     waitKey(0);
    	return 0;
