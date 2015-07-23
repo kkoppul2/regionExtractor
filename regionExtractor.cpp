@@ -90,14 +90,13 @@ Mat collapseContour(std::vector<Point> specificContour, Point variance, Mat img)
 int main(int argc, char *argv[])
 {
     Mat img = imread("/home/jkaikaus/Lab/regionExtractor/Samples/2.jpg");
-    Mat box, fin;
+    Mat box;
     cvtColor(img, box, COLOR_BGR2GRAY);
     Size s = img.size(); //obtain image dimensions
 	int rows = s.height;
 	int cols = s.width;
     Mat mask = Mat::zeros(rows, cols, CV_8UC1); //make mask based off of image dimensions
     Mat temp; 
-    //temp = Mat::zeros(rows, cols, CV_8UC1 );
     MSER ms(5, 1000, 14400, .25, .2, 200, 1.01, .003, 5);
     std::vector<vector<Point>> regions;
     std::vector<vector<Point>> contours;
@@ -123,17 +122,16 @@ int main(int argc, char *argv[])
             std::vector<vector<Point>> newcontours1(contours.size());
             std::vector<vector<Point>> newcontours2(contours.size());
             std::vector<vector<Point>> newcontours3(contours.size());
-            std::vector<vector<Point>> temporary();
             newcontours1 = scaleHull(1.5, intmc[j], hull[j], newcontours1);
             newcontours2 = scaleHull(2, intmc[j], hull[j], newcontours2);
             newcontours3 = scaleHull(3, intmc[j], hull[j], newcontours3);
             temp = collapseContour(contours[j], mv[j], img);
            
-            //drawContours(img,hull,j,Scalar(0,255,255),2,8, vector<Vec4i>(), 0, Point());
-            //drawContours(img,newcontours1,j,Scalar(0,255,0),2,8, vector<Vec4i>(), 0, Point()); 
-            //drawContours(img,newcontours2,j,Scalar(0,0,255),2,8, vector<Vec4i>(), 0, Point());
-            //drawContours(img,newcontours3,j,Scalar(255,0,0),2,8, vector<Vec4i>(), 0, Point());
-            //circle( img, mc[j], 4, Scalar::all(255), -1, 8, 0 );
+            drawContours(img,hull,j,Scalar(0,255,255),2,8, vector<Vec4i>(), 0, Point());
+            drawContours(img,newcontours1,j,Scalar(0,255,0),2,8, vector<Vec4i>(), 0, Point()); 
+            drawContours(img,newcontours2,j,Scalar(0,0,255),2,8, vector<Vec4i>(), 0, Point());
+            drawContours(img,newcontours3,j,Scalar(255,0,0),2,8, vector<Vec4i>(), 0, Point());
+            circle( img, mc[j], 4, Scalar::all(255), -1, 8, 0 );
             //namedWindow("Image Window", WINDOW_NORMAL );
             imshow("Image Window", temp);
             waitKey(0);
