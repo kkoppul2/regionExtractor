@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <opencv2/opencv.hpp>                   //check file include
-#include <opencv2/features2d/features2d.hpp>    //check file include
-#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/opencv.hpp>
 #include <limits>
 #include <iterator>
+#include <iostream>
 
 using namespace cv;
 
@@ -16,20 +15,17 @@ std::vector<vector<Point>> scaleHull(float scale, Point2f mean, std::vector<std:
 
 Mat collapseContour(std::vector<Point> specificContour, Point variance, Mat img);
 
-void printScaleContours(Mat& img, std::vector<std::vector<Point>>& hull, std::vector<Point2f>& mc);
-
-Mat collapseContour(std::vector<Point> specificContour, Point variance, Mat img);
+void printContours(Mat& img, std::vector<std::vector<Point>>& hull, std::vector<Point2f>& mc, int type);
 
 int main(int argc, char *argv[])
 {
     Mat img = imread(argv[1]);
-    Mat box, fin, temp;
+    Mat box;
     cvtColor(img, box, COLOR_BGR2GRAY);
-    Mat mask = Mat::zeros(img.rows, img.cols, CV_8UC1); //make mask based off of image dimensions
-    MSER ms(5, 1000, 14400, .25, .2, 200, 1.01, .003, 5);
-    std::vector<vector<Point>> regions;
-    std::vector<vector<Point>> hull(regions.size());
+    MSER ms(5, 1000, 14400, .25, .2, 200, 1.01, .003, 5);                   //Where do these specifications come from?
+    std::vector<std::vector<Point>> regions;
     ms(box, regions, Mat());
+    std::vector<std::vector<Point>> hull(regions.size());
 
     //Extract convex hull from each contour and store in hull[] for contour scaling
     for (size_t i = 0; i < regions.size(); i++)
@@ -46,7 +42,7 @@ int main(int argc, char *argv[])
         mv[j] = Point2f( mu[j].m20/mu[j].m00 , mu[j].m02/mu[j].m00 );       //Variance of each convexHull of each contour
     }
 
-    printScaleContours(img, hull, mc);
+    printContours(img, hull, mc, 0);
 
 
 
@@ -104,24 +100,45 @@ Mat collapseContour(std::vector<Point> specificContour, Point variance, Mat img)
     return temp;
 }
 
-void printScaleContours(Mat& img, std::vector<std::vector<Point>>& hull, std::vector<Point2f>& mc)
+void printContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<Point2f>& m_, int type)
 {
-    for (uint64_t i = 0; i < hull.size();++i)
-    {
-        drawContours(img,hull,i,Scalar(0,255,255),2,8, vector<Vec4i>(), 0, Point());
-        drawContours(img,scaleHull(1.5, mc[i], hull, i),i,Scalar(0,255,0),2,8, vector<Vec4i>(), 0, Point()); 
-        drawContours(img,scaleHull(2, mc[i], hull, i),i,Scalar(0,0,255),2,8, vector<Vec4i>(), 0, Point());
-        drawContours(img,scaleHull(3, mc[i], hull, i),i,Scalar(255,0,0),2,8, vector<Vec4i>(), 0, Point());
-        circle( img, mc[i], 4, Scalar::all(255), -1, 8, 0 );
-        namedWindow("Image Window", WINDOW_NORMAL );
-        //imshow("Image Window", temp);
-        waitKey(0);
+    switch (type) {
+    case: 0                                                                 //Scaled Contours
+        {                                                                
+            for (uint64_t i = 0; i < hull.size();++i)
+            {
+                drawContours(img,hull,i,Scalar(0,255,255),2,8, vector<Vec4i>(), 0, Point());
+                drawContours(img,scaleHull(1.5, m_[i], hull, i),i,Scalar(0,255,0),2,8, vector<Vec4i>(), 0, Point()); 
+                drawContours(img,scaleHull(2, m_[i], hull, i),i,Scalar(0,0,255),2,8, vector<Vec4i>(), 0, Point());
+                drawContours(img,scaleHull(3, m_[i], hull, i),i,Scalar(255,0,0),2,8, vector<Vec4i>(), 0, Point());
+                circle( img, m_[i], 4, Scalar::all(255), -1, 8, 0 );
+                namedWindow("Image Window", WINDOW_NORMAL );
+                imshow("Image Window", img);
+                waitKey(0);
+            }
+        }
+        break;
+    case: 1                                                                 //Collapsed contours
+        {
+            for (uint64_t i = 0; i < hull.size();++i)
+            {
+                drawContours(img,hull,i,Scalar(0,255,255),2,8, vector<Vec4i>(), 0, Point());
+                drawContours(img,collapseContour(1.5, m_[i], hull, i),i,Scalar(0,255,0),2,8, vector<Vec4i>(), 0, Point()); 
+                circle( img, m_[i], 4, Scalar::all(255), -1, 8, 0 );
+                namedWindow("Image Window", WINDOW_NORMAL );
+                imshow("Image Window", img);
+                waitKey(0);
+            }
+        }
+        break;
+    default:
+        std::cout << "Invalid Type" << std::endl;
     }
 }
 
 std::vector<vector<Point>> scaleHull(float scale, Point2f mean, std::vector<std::vector<Point>>& hull, uint64_t idx)//takes in contour, scales it
 {
-    std::vector<vector<Point>> newcontours(hull.size());
+    std::vector<std::vector<Point>> newcontours(hull.size());
     float scalex, scaley, tempx, tempy;
     for (size_t i = 0; i < hull[idx].size(); i++)
     {  
@@ -136,3 +153,4 @@ std::vector<vector<Point>> scaleHull(float scale, Point2f mean, std::vector<std:
     }
     return newcontours;
 }
+

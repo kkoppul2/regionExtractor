@@ -13,4 +13,3 @@ regionExtractor: regionExtractor.o
 clean:
 	rm -f *.o
 	rm -f bin/regionExtractor
-
