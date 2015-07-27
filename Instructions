@@ -1,4 +1,1 @@
-New approach create new vectors of vectors for all the scaled contours as well as one for the collapsed version. Then have the scaleHull and collapseContour functions return a vector of points that can be set equal to the appropriate position in the corresponding vector of vectors.
-Then print becomes much more versatile, and we have all copies of our contours stored for reference. 
-Do all scaling and collapsing within main function then run print.
-Clean up print after attending to previous changes
+MSER source https://github.com/Itseez/opencv/blob/master/modules/features2d/src/mser.cpp

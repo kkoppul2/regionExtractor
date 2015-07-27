@@ -11,101 +11,70 @@ using namespace cv;
 //Global Variable Declarations
 
 //Helper Function Declarations
-std::vector<vector<Point>> scaleHull(float scale, Point2f mean, std::vector<std::vector<Point>>& hull, uint64_t idx);
+std::vector<Point> scaleHull(float scale, Point2f mean, std::vector<Point>& specificHull);
 
-Mat collapseContour(std::vector<Point> specificContour, Point variance, Mat img);
+std::vector<Point> collapseContour(Point2f variance, std::vector<Point>& specificHull);
 
-void printContours(Mat& img, std::vector<std::vector<Point>>& hull, std::vector<Point2f>& mc, int type);
+void printScaleContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<std::vector<Point>>& hull15, std::vector<std::vector<Point>>& hull2, std::vector<std::vector<Point>>& hull3, std::vector<Point2f>& mc);
+
+void printCollapseContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<std::vector<Point>>& hullcollapse, std::vector<Point2f>& mc);
 
 int main(int argc, char *argv[])
 {
     //Include agrument usage and thrown error for improper use
+    if (argc != 3)
+    {
+        std::cerr << "Usage: " << argv[0] << "Source Image, Contour Type(1 for scale, 0 for collapse)" << std::endl;
+        return 1;
+    }
 
     Mat img = imread(argv[1]);
     Mat box;
     cvtColor(img, box, COLOR_BGR2GRAY);
-    MSER ms(5, 1000, 14400, .25, .2, 200, 1.01, .003, 5);                   //Where do these specifications come from?
+    MSER ms(5, 1000, 14400, .25, .2, 200, 1.01, .003, 5);
     std::vector<std::vector<Point>> regions;
     ms(box, regions, Mat());
     std::vector<std::vector<Point>> hull(regions.size());
 
     //Extract convex hull from each contour and store in hull[] for contour scaling
-    for (size_t i = 0; i < regions.size(); i++)
+    for (size_t i = 0; i < regions.size(); ++i)
         convexHull(Mat(regions[i]), hull[i], false);
    	
     
     std::vector<Moments> mu(hull.size());
-    std::vector<Point2f> mc(hull.size()); //center of masses (mean)     Figure out how each of these determined from moments
+    std::vector<Point2f> mc(hull.size()); //center of masses (mean)
     std::vector<Point2f> mv(hull.size()); //variances
-    for (size_t j = 0; j < hull.size(); j++)
+    for (size_t i = 0; i < hull.size(); ++i)
     {                
-        mu[j] = moments(hull[j], false);                                    //Create moments vector to extract center of mass and variance
-        mc[j] = Point2f( mu[j].m10/mu[j].m00 , mu[j].m01/mu[j].m00 );       //Center of mass for each convexHull of each contour
-        mv[j] = Point2f( mu[j].m20/mu[j].m00 , mu[j].m02/mu[j].m00 );       //Variance of each convexHull of each contour
+        mu[i] = moments(hull[i], false);                                    //Create moments vector to extract center of mass and variance
+        mc[i] = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );       //Center of mass for each convexHull of each contour
+        mv[i] = Point2f( mu[i].m20/mu[i].m00 , mu[i].m02/mu[i].m00 );       //Variance of each convexHull of each contour
     }
 
-    //All scaling operations
-    scaleHull(1.5, m_[i], hull, i)
-    scaleHull(2, m_[i], hull, i)
-    scaleHull(3, m_[i], hull, i)
+    //Create and populate scaled contour vectors
+    std::vector<std::vector<Point>> hull15(hull.size());
+    std::vector<std::vector<Point>> hull2(hull.size());
+    std::vector<std::vector<Point>> hull3(hull.size());
+    for (size_t i = 0; i < hull.size(); ++i)
+    {  
+        hull15[i] = scaleHull(1.5, mc[i], hull[i]);
+        hull2[i] = scaleHull(2, mc[i], hull[i]);
+        hull3[i] = scaleHull(3, mc[i], hull[i]);
+    }
+    //Create and populate collapsed contour vectors
+    std::vector<std::vector<Point>> hullcollapse(hull.size());
+    for (size_t i = 0; i < hull.size(); ++i)
+        hullcollapse[i] = collapseContour(mv[i], hull[i]);
 
-
-    printContours(img, hull, mc, 0);
+    //Print all contours 
+    if (argv[2])
+        printScaleContours(img, hull, hull15, hull2, hull3, mc);
+    else
+        printCollapseContours(img, hull, hullcollapse, mc);
    	return 0;
 }
 
-std::vector<vector<Point>> scaleHull(float scale, Point2f mean, std::vector<std::vector<Point>>& hull, uint64_t idx)
-
-Mat collapseContour(std::vector<Point> specificContour, Point variance, Mat img) //subtract std dev from x and y of contour
-{ 
-    Size s = img.size(); //obtain image dimensions
-    int rows = s.height;
-    int cols = s.width;
-    Mat temp = Mat::zeros(rows, cols, CV_8UC1 );
-    int stddevx = sqrt(variance.x);
-    int stddevy = sqrt(variance.y);
-    std::vector<Point> vector(specificContour.size());
-    std::vector<std::vector<Point>> newcontours(1);
-    std::vector<std::vector<Point>> oldcontours(1);
-    for (size_t i = 0; i < specificContour.size(); i++)
-    {
-        int tempx, tempy;
-        tempx = specificContour[i].x - stddevx;
-        tempy = specificContour[i].y - stddevy;
-        vector.push_back(Point(tempx,tempy));
-    }
-    for (size_t i = 0; i < vector.size(); i++)
-    {
-        Point p = vector[i];
-        Point d = specificContour[i];
-        if (p.x != 0 && p.y != 0 )
-        {
-            newcontours[0].push_back(p);
-        }
-        if (d.x != 0 && d.y != 0 )
-        {
-            oldcontours[0].push_back(p);
-        }          
-    }
-    for (size_t i = 0; i < newcontours.size(); i++)
-    {
-        drawContours(temp,newcontours,i,Scalar(255,255,255),2,8, std::vector<Vec4i>(), 0, Point());
-        //drawContours(temp, oldcontours, i, Scalar(255,255, 0), 2, 8, std::vector<Vec4i>(), 0, Point());
-    }
-    /*for (size_t i = 0; i < (size_t)rows; i++)
-    {
-        for (size_t j = 0; j < (size_t)cols; j++)
-        {
-            if(!(img.at<double>(i,j) == 1))
-            {
-                img.at<double>(i,j) = 0;
-            }
-        }
-    }*/
-    return temp;
-}
-
-void printScaleContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<std::vector<Point>>& hull15, std::vector<std::vector<Point>>& hull2, std::vector<std::vector<Point>>& hull3)
+void printScaleContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<std::vector<Point>>& hull15, std::vector<std::vector<Point>>& hull2, std::vector<std::vector<Point>>& hull3, std::vector<Point2f>& mc)
 {                                                    
     for (uint64_t i = 0; i < hull.size();++i)
     {
@@ -120,7 +89,7 @@ void printScaleContours(Mat img, std::vector<std::vector<Point>>& hull, std::vec
     }
 }
 
-void printCollapseContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<std::vector<Point>>& hullcollapse)
+void printCollapseContours(Mat img, std::vector<std::vector<Point>>& hull, std::vector<std::vector<Point>>& hullcollapse, std::vector<Point2f>& mc)
 {
     for (uint64_t i = 0; i < hull.size();++i)
     {
@@ -134,21 +103,39 @@ void printCollapseContours(Mat img, std::vector<std::vector<Point>>& hull, std::
 }
 
 //takes in contour, scales it
-std::vector<vector<Point>> scaleHull(float scale, Point2f mean, std::vector<std::vector<Point>>& hull, uint64_t idx)
+std::vector<Point> scaleHull(float scale, Point2f mean, std::vector<Point>& specificHull)
 {
-    std::vector<std::vector<Point>> newcontours(hull.size());
+    std::vector<Point> newcontour;
     float scalex, scaley, tempx, tempy;
-    for (size_t i = 0; i < hull[idx].size(); ++i)
+    for (size_t i = 0; i < specificHull.size(); ++i)
     {  
-        tempx = hull[idx][i].x - mean.x;
-        tempy = hull[idx][i].y - mean.y;
+        tempx = specificHull[i].x - mean.x;
+        tempy = specificHull[i].y - mean.y;
         scalex = scale*tempx;
         scaley = scale*tempy;
         scalex+= mean.x;
         scaley+= mean.y;
         if (scaley != 0 && scalex != 0)
-            newcontours[idx].push_back(Point((int)scalex,(int)scaley));
+            newcontour.push_back(Point((int) scalex, (int) scaley));
     }
-    return newcontours;
+    return newcontour;
+}
+
+std::vector<Point> collapseContour(Point2f variance, std::vector<Point>& specificHull) //subtract std dev from x and y of contour
+{ 
+    float stddevx = sqrt(variance.x);
+    float stddevy = sqrt(variance.y);
+    float tempx, tempy;
+    std::vector<Point> newcontour;
+    for (size_t i = 0; i < specificHull.size(); i++)
+    {
+        tempx = specificHull[i].x - stddevx;
+        tempy = specificHull[i].y - stddevy;
+        if (tempx != 0 && tempy != 0 )
+        {
+            newcontour.push_back(Point((int) tempx, (int) tempy));
+        }
+    }
+    return newcontour;
 }
 
